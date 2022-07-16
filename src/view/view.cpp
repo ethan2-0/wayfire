@@ -1458,7 +1458,7 @@ wf::scene::iteration wf::scene::view_node_t::visit(visitor_t *visitor)
 
 int wf::scene::view_node_t::flags() const
 {
-    return _flags;
+    return node_t::flags() | _flags;
 }
 
 wf::keyboard_interaction_t& wf::scene::view_node_t::keyboard_interaction()

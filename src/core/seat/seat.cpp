@@ -110,7 +110,8 @@ class keyboard_bindings_node_t final : public scene::node_t, keyboard_interactio
     int flags() const override
     {
         // We always want to accept keyboard input
-        return (int)scene::node_flags::ACTIVE_KEYBOARD;
+        return node_t::flags() |
+               (int)scene::node_flags::ACTIVE_KEYBOARD;
     }
 
     keyboard_interaction_t& keyboard_interaction() override

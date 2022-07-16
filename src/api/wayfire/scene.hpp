@@ -109,6 +109,15 @@ enum class node_flags : int
      * keyboard_leave event.
      */
     ACTIVE_KEYBOARD = (1 << 0),
+    /**
+     * If set, the node should be ignored by visitors and any plugins iterating
+     * over the scenegraph. Such nodes (and their children) do not wish to receive
+     * pointer, keyboard, etc. events and do not wish to be displayed.
+     *
+     * Note that plugins might still force those nodes to receive input and be
+     * rendered by calling the corresponding methods directly.
+     */
+    DISABLED        = (1 << 1),
 };
 
 /**
@@ -141,6 +150,8 @@ class node_t : public std::enable_shared_from_this<node_t>
 
     /**
      * First visit the node and then its children from front to back.
+     * For consistency, the parent node's visit implementation should not visit
+     * disabled nodes.
      */
     virtual iteration visit(visitor_t *visitor) = 0;
 
@@ -149,7 +160,8 @@ class node_t : public std::enable_shared_from_this<node_t>
      */
     virtual int flags() const
     {
-        return 0;
+        return enabled_counter > 0 ?
+               0 : (int)node_flags::DISABLED;
     }
 
     /**
@@ -180,6 +192,14 @@ class node_t : public std::enable_shared_from_this<node_t>
         return this->_parent;
     }
 
+    /**
+     * Increase or decrease the enabled counter. A non-positive counter causes
+     * the DISABLED flag to be set.
+     *
+     * By default, a node is created with an enabled counter equal to 1.
+     */
+    void set_enabled(bool is_enabled);
+
   public:
     node_t(const node_t&) = delete;
     node_t(node_t&&) = delete;
@@ -189,6 +209,7 @@ class node_t : public std::enable_shared_from_this<node_t>
   protected:
     node_t(bool is_structure);
     bool _is_structure;
+    int enabled_counter   = 1;
     inner_node_t *_parent = nullptr;
     friend class inner_node_t;
 };

@@ -18,13 +18,15 @@ wf::pointer_t::pointer_t(nonstd::observer_ptr<wf::input_manager_t> input,
     this->seat  = seat;
     on_surface_map_state_change.set_callback([=] (auto surface)
     {
-        if (surface && (grabbed_surface == surface) && !surface->is_mapped())
+        if (auto vnode = dynamic_cast<wf::scene::view_node_t*>(grabbed_node.get()))
         {
-            grab_surface(nullptr);
-        } else
-        {
-            update_cursor_position(get_current_time(), false);
+            if (!vnode->get_view()->is_mapped())
+            {
+                grab_surface(nullptr);
+            }
         }
+
+        update_cursor_position(get_current_time(), false);
     });
 
     on_views_updated.set_callback([&] (wf::signal_data_t*)
@@ -56,7 +58,7 @@ void wf::pointer_t::set_enable_focus(bool enabled)
     if (!focus_enabled())
     {
         grab_surface(nullptr);
-        this->update_cursor_focus(nullptr, {0.0, 0.0});
+        this->update_cursor_focus(nullptr);
     } else
     {
         update_cursor_position(get_current_time(), false);
@@ -72,21 +74,17 @@ void wf::pointer_t::update_cursor_position(uint32_t time_msec, bool real_update)
 {
     wf::pointf_t gc = seat->cursor->get_cursor_position();
 
-    wf::pointf_t local = {0.0, 0.0};
-    wf::surface_interface_t *new_focus = nullptr;
     /* If we have a grabbed surface, but no drag, we want to continue sending
      * events to the grabbed surface, even if the pointer goes outside of it.
      * This enables Xwayland DnD to work correctly, and also lets the user for
-     * ex. grab a scrollbar and move their mouse freely.
-     *
-     * Notice in case of active wayland DnD we need to send events to the
-     * surfaces which are actually under the mouse */
-    if (grabbed_surface && !seat->drag_active)
+     * ex. grab a scrollbar and move their mouse freely. */
+    if (!grabbed_node && this->focus_enabled())
     {
-        new_focus = grabbed_surface;
-        local     = get_surface_relative_coords(new_focus, gc);
-    } else if (this->focus_enabled())
-    {
+        const auto& scene = wf::get_core().scene();
+        auto isec = scene->find_node_at(gc);
+
+        auto node = 
+
         new_focus = input->input_surface_at(gc, local);
         update_cursor_focus(new_focus, local);
 

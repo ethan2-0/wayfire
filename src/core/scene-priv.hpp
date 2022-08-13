@@ -8,7 +8,12 @@ namespace scene
 {
 struct root_node_t::priv_t
 {
+    std::shared_ptr<floating_inner_node_t> system_nodes;
+
     std::vector<node_ptr> active_keyboard_nodes;
+
+    // Nodes with ACTIVE_USER_INPUT set (excluding normal pointer focus).
+    std::vector<node_ptr> active_pointer_nodes;
 
     /**
      * Iterate over the scenegraph and compute nodes which have active keyboard

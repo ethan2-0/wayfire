@@ -124,13 +124,13 @@ class keyboard_bindings_node_t final : public scene::node_t, keyboard_interactio
         return *this;
     }
 
-    keyboard_action handle_keyboard_key(wlr_event_keyboard_key event) override
+    input_action handle_keyboard_key(wlr_event_keyboard_key event) override
     {
         auto& seat = wf::get_core_impl().seat;
         seat->current_keyboard->handle_keyboard_key(event.keycode, event.state);
 
         // These are just bindings. We propagate the events to the clients.
-        return keyboard_action::PROPAGATE;
+        return input_action::PROPAGATE;
     }
 };
 }

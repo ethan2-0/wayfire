@@ -233,6 +233,10 @@ root_node_t::root_node_t() : floating_inner_node_t(true)
 {
     std::vector<node_ptr> children;
 
+    this->priv = std::make_unique<root_node_t::priv_t>();
+    this->priv->system_nodes = std::make_shared<floating_inner_node_t>(true);
+    children.push_back(this->priv->system_nodes);
+
     for (int i = (int)layer::ALL_LAYERS - 1; i >= 0; i--)
     {
         layers[i] = std::make_shared<floating_inner_node_t>(true);
@@ -240,7 +244,6 @@ root_node_t::root_node_t() : floating_inner_node_t(true)
     }
 
     set_children_unchecked(children);
-    this->priv = std::make_unique<root_node_t::priv_t>();
 }
 
 root_node_t::~root_node_t()
@@ -259,12 +262,19 @@ std::string root_node_t::stringify() const
 class collect_active_nodes_t final : public visitor_t
 {
   public:
-    std::vector<node_ptr> active_nodes;
+    std::vector<node_ptr> active_keyboard_nodes;
+    std::vector<node_ptr> active_uinput_nodes;
+
     void try_push(node_t *node)
     {
         if (node->flags() & (int)node_flags::ACTIVE_KEYBOARD)
         {
-            active_nodes.push_back(node->shared_from_this());
+            active_keyboard_nodes.push_back(node->shared_from_this());
+        }
+
+        if (node->flags() & (int)node_flags::ACTIVE_USER_INPUT)
+        {
+            active_uinput_nodes.push_back(node->shared_from_this());
         }
     }
 
@@ -301,8 +311,8 @@ void root_node_t::priv_t::update_active_nodes(root_node_t *root)
     };
 
     std::set<node_ptr> new_focused{
-        collector.active_nodes.begin(),
-        collector.active_nodes.end()
+        collector.active_keyboard_nodes.begin(),
+        collector.active_keyboard_nodes.end()
     };
 
     for (auto& old_focus : already_focused)
@@ -321,7 +331,12 @@ void root_node_t::priv_t::update_active_nodes(root_node_t *root)
         }
     }
 
-    this->active_keyboard_nodes = std::move(collector.active_nodes);
+    this->active_keyboard_nodes = std::move(collector.active_keyboard_nodes);
+
+    // FIXME: ideally, we'd want to send enter/leave events.
+    // They are not necessary for the initial set of uinput nodes though, so
+    // enter/leave are not implemented yet.
+    this->active_pointer_nodes = std::move(collector.active_uinput_nodes);
 }
 
 void root_node_t::priv_t::handle_key(wlr_event_keyboard_key ev)
@@ -329,7 +344,7 @@ void root_node_t::priv_t::handle_key(wlr_event_keyboard_key ev)
     for (auto& node : this->active_keyboard_nodes)
     {
         auto result = node->keyboard_interaction().handle_keyboard_key(ev);
-        if (result == keyboard_action::CONSUME)
+        if (result == input_action::CONSUME)
         {
             break;
         }

@@ -108,7 +108,18 @@ enum class node_flags : int
      * If the flag is cleared after being set, the node will receive a
      * keyboard_leave event.
      */
-    ACTIVE_KEYBOARD = (1 << 0),
+    ACTIVE_KEYBOARD   = (1 << 0),
+    /**
+     * If set, the node should statically receive pointer/touch/etc. events, i.e.
+     * **independently** of the cursor position and currently focused surface.
+     *
+     * As such, user input surfaces do not affect the cursor focus, but may still
+     * consume events to prevent them from reaching the currently hovered node.
+     *
+     * This acts as an override for pointer_interaction::accepts_input() and does
+     * not cause pointer_enter/leave events.
+     */
+    ACTIVE_USER_INPUT = (1 << 1),
     /**
      * If set, the node should be ignored by visitors and any plugins iterating
      * over the scenegraph. Such nodes (and their children) do not wish to receive
@@ -117,7 +128,7 @@ enum class node_flags : int
      * Note that plugins might still force those nodes to receive input and be
      * rendered by calling the corresponding methods directly.
      */
-    DISABLED        = (1 << 1),
+    DISABLED          = (1 << 2),
 };
 
 /**
@@ -181,6 +192,12 @@ class node_t : public std::enable_shared_from_this<node_t>
         return noop;
     }
 
+    virtual pointer_interaction_t& pointer_interaction()
+    {
+        static pointer_interaction_t noop;
+        return noop;
+    }
+
     /**
      * Structure nodes are special nodes which core usually creates when Wayfire
      * is started (e.g. layer and output nodes). These nodes should not be
@@ -197,6 +214,14 @@ class node_t : public std::enable_shared_from_this<node_t>
     inner_node_t *parent() const
     {
         return this->_parent;
+    }
+
+    /**
+     * A helper function to get the status of the DISABLED flag.
+     */
+    inline bool is_disabled() const
+    {
+        return flags() & (int)node_flags::DISABLED;
     }
 
     /**

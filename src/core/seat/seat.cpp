@@ -107,6 +107,11 @@ class keyboard_bindings_node_t final : public scene::node_t, keyboard_interactio
         return visitor->generic_node(this);
     }
 
+    std::string stringify() const override
+    {
+        return "keybindings " + stringify_flags();
+    }
+
     int flags() const override
     {
         // We always want to accept keyboard input
